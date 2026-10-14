@@ -2,11 +2,12 @@ import pyglet
 import numpy as np
 
 class Graph_Page:
-    def __init__(self):
+    def __init__(self,Renderer):
         self.batch = pyglet.graphics.Batch()
-        self.xlim = ( -1, 1 )
-        self.ylim = ( -1 , 1 )
+        self.xlim = ( -5, 5 )
+        self.ylim = ( -5 ,5  )
         self.grid_spacing = 50
+        self.Renderer = Renderer
 
     
 
@@ -26,7 +27,7 @@ class Graph_Page:
 
     def convert_to_screen_coordinate(self,limit,coordinates,dimension):
         rng = limit[1] - limit[0]
-        screen_coordinates = ((coordinates - limit[0])/rng) * dimension
+        screen_coordinates = ((coordinates - limit[0])/rng) * (dimension)
         return screen_coordinates
         
     def nice_num(self,limit,dimension):
@@ -46,7 +47,7 @@ class Graph_Page:
             m = 10
         interval = m * (10 ** exponent)
 
-        ticks = np.arange(limit[0]*10**np.abs(exponent),(limit[1]*10**np.abs(exponent))+1 , interval*10**np.abs(exponent))/10**np.abs(exponent) 
+        ticks = np.arange(limit[0]*10**np.abs(exponent),(limit[1]*10**np.abs(exponent) +1) , interval*10**np.abs(exponent))/10**np.abs(exponent) 
 
         return ticks
     
@@ -57,7 +58,12 @@ class Graph_Page:
         self.ylim = (ymin,ymax)
 
     def plot_points(self,x,y):
-        pass
+        x = np.array(x)
+        y = np.array(y)
+        screen_x = self.convert_to_screen_coordinate(self.xlim,x,self.width)
+        screen_y = self.convert_to_screen_coordinate(self.ylim,x,self.height)
+
+        self.Renderer.add_points(screen_x,screen_y)
 
 if __name__ =="__main__":
     pass

@@ -8,17 +8,22 @@ class Frame:
         self.height = height
         self.graphs = []
         self.Renderer = Rendering_Engine(width,height)
+        
 
     
     def create_graph_page(self):
-        graph = Graph_Page()
+        graph = Graph_Page(self.Renderer)
         graph.initialize(self.width,self.height)
         self.graphs.append(graph)
-        self.Renderer.draw_graph(graph)
+        self.Renderer.create_graph(graph)
         return graph
+    
+
     
     def run(self):
         self.Renderer.run()
+        
+
 
 
 
