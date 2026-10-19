@@ -1,107 +1,144 @@
-import pyglet
 import numpy as np
-
-
-
-class Rendering_Engine:
+import pyglet 
+from pyglet.gl import GL_LINES,glEnable,GL_BLEND,glBlendFunc,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA
+from  .Shaders.Shader import Shader_Program #custom shader program
+from core.coordinate_conversion import convert_to_screen_coordinate,convert_to_graph_coordinate
+from core.generate_grid_line_pair import generate_grid_line_pair_x,generate_grid_line_pair_y
+class Renderer:
     def __init__(self,width,height):
         self.width = width
         self.height = height
         self.window = pyglet.window.Window(width,height)
-        self.graphs = []
-        self.tick_label = pyglet.graphics.Batch()
-        self.tick_list = []
-        self.lines = pyglet.graphics.Batch()
-        self.lines_list = []
-        self.points = pyglet.graphics.Batch()
-        self.points_list = []
-        self.rectangles = pyglet.graphics.Batch()
-        self.rectangles_list = []
-        self.graph_borders = pyglet.graphics.Batch()
-        self.graph_borders_list = []
+        self.graph = None
+        self.shader_program = Shader_Program(width,height)
 
 
-    
+        ##batches
+        self.x_tick_batches = pyglet.graphics.Batch()
+        self.x_ticks = []
 
-    def create_graph(self,graph,order):
-        self.graphs.append(graph)
+        self.y_tick_batches = pyglet.graphics.Batch()
+        self.y_ticks = [] 
 
-        x_min,x_max = graph.x_range
-        y_min , y_max = graph.y_range
-        top = pyglet.shapes.Line(
-            x_min,y_min,x_max,y_min,batch=self.graph_borders,group=graph.scissor_group
-        )
-        bottom = pyglet.shapes.Line(
-            x_min,y_max,x_max,y_max,batch=self.graph_borders,group=graph.scissor_group
-        )
-        left = pyglet.shapes.Line(
-            x_min,y_min,x_min,y_max,batch=self.graph_borders,group=graph.scissor_group
-        )
-        right = pyglet.shapes.Line(
-            x_max,y_min,x_max,y_max,batch=self.graph_borders,group=graph.scissor_group
-        )
-        self.graph_borders_list.extend([top,bottom,left,right])
+        self.line_batch = pyglet.graphics.Batch()
+        self.lines = []
+
+
+
+
+    def draw_graph(self,graph):
+        self.graph = graph
+        self.update_graph(graph)
+
+    def update_graph(self,graph):
+        graph.generate_ticks()
+
+        for tick_y in self.y_ticks:
+            tick_y.delete()
+        self.y_ticks.clear()
+
+        for tick_x in self.x_ticks:
+            tick_x.delete()
         
-        tick_x ,tick_y,screen_x_coor,screen_y_coor = graph.generate_nice_ticks()
- 
-        for t_x,x in zip(tick_x,screen_x_coor):
-            tick_x = pyglet.text.Label(
-                f"{t_x}",
-                x = x,
-                y = (graph.y_range[0] + graph.y_range[1])//2,
+        self.x_ticks.clear()
+
+        for line in self.lines:
+            line.delete()
+        self.lines.clear()
+
+        x_ticks = graph.x_ticks
+        y_ticks = graph.y_ticks
+
+        x_axis = convert_to_screen_coordinate(0,graph.xlim,graph.width)
+        y_axis = convert_to_screen_coordinate(0,graph.ylim,graph.height)
+
+        x_coordinate = convert_to_screen_coordinate(x_ticks,graph.xlim,graph.width)
+        y_coordinate = convert_to_screen_coordinate(y_ticks,graph.ylim,graph.height)
+
+        for x_t , x in zip(x_ticks,x_coordinate):
+            label = pyglet.text.Label(
+                f"{x_t}",
+                x=x,
+                y = y_axis,
+                batch=self.x_tick_batches,
                 anchor_x="center",
-                anchor_y="top",
-                batch= self.tick_label,
-                group=graph.scissor_group
+                anchor_y="center"
             )
-            self.tick_list.append(tick_x)
-            
-        for y in (screen_y_coor):
-            line = pyglet.shapes.Line(
-                graph.x_range[0],y,graph.x_range[1],y,color=(255,255,255,70),batch=self.lines,group=graph.scissor_group
-            )
-            self.lines_list.append(line)
-        for x in screen_x_coor:
-            line = pyglet.shapes.Line(
-                x,graph.y_range[0],x,graph.y_range[1],color=(255,255,255,70),batch=self.lines,group=graph.scissor_group
-            )
-            self.lines_list.append(line)
-        for t_y,y in zip(tick_y,screen_y_coor):
-            tick_y = pyglet.text.Label(
-                f"{t_y}",
-                x = (graph.x_range[0] + graph.x_range[1]) //2,
-                y = y,
-                anchor_x="right",
-                anchor_y="center",
-                batch= self.tick_label,group=graph.scissor_group
-            )
-            
-            self.tick_list.append(tick_y)
-            
+            self.x_ticks.append(label)
         
-    
+        for y_t,y in zip(y_ticks,y_coordinate):
+            label = pyglet.text.Label(
+                f"{y_t}",
+                x=x_axis,
+                y=y,
+                batch=self.y_tick_batches,
+                anchor_x="center",
+                anchor_y="center"
+            )
+            self.y_ticks.append(label)
+
+        lines = generate_grid_line_pair_x(x_coordinate,graph.height)
+
+        lines_v = self.shader_program.vertex_list(
+            len(lines),
+            GL_LINES,
+            position = ('f',lines.flatten()),
+            batch = self.line_batch
+        )
+        self.lines.append(lines_v)
+        lines = generate_grid_line_pair_y(y_coordinate, graph.width)
+
+        lines_h = self.shader_program.vertex_list(
+            len(lines),
+            GL_LINES,
+            position = ('f',lines.flatten()),
+            batch = self.line_batch
+        ) 
+        self.lines.append(lines_h)
+
+
+
     def draw(self):
-        self.tick_label.draw()
-        self.lines.draw()
-        self.points.draw()
-        self.rectangles.draw()
-        self.graph_borders.draw()
-
-
-    def add_points(self,x,y,scissor_group,size = 6):
-        for xi,yi in zip(x,y):
-            print(xi,yi)
-            circle = pyglet.shapes.Circle(xi,yi,radius=size,batch=self.points,group=scissor_group)
-            self.points_list.append(circle)
-
-
+        self.line_batch.draw()
+        self.x_tick_batches.draw()
+        self.y_tick_batches.draw()
     def run(self):
-
         @self.window.event
         def on_draw():
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA)
             self.window.clear()
             self.draw()
         
+
+        @self.window.event
+        def on_mouse_scroll(x,y,scroll_x ,scroll_y):
+            
+                if scroll_y == 0:
+                    return
+                factor = 1.1 if scroll_y > 0 else 1 / 1.1
+                
+                x_n = convert_to_graph_coordinate(x,self.graph.xlim,self.graph.width)
+                y_n = convert_to_graph_coordinate(y,self.graph.ylim,self.graph.height)
+
+                new_x_range = (self.graph.xlim[1] - self.graph.xlim[0])/factor
+
+                new_y_range = (self.graph.ylim[1] - self.graph.ylim[0])/factor
+
+                new_x_min = x_n  - (x/self.graph.width)* new_x_range
+                new_y_min = y_n - (y/self.graph.height) * new_y_range
+
+                self.graph.xlim = (new_x_min,new_x_min + new_x_range)
+                self.graph.ylim = (new_y_min, new_y_min + new_y_range)
+                self.update_graph(self.graph)
+
+
+        @self.window.event
+        def on_mouse_drag(x,y,dx,dy,buttons,modifiers):
+            
+            self.graph.xlim =  np.array(self.graph.xlim ) - (dx/self.graph.width) * ((self.graph.xlim[1] - self.graph.xlim[0]))
+            self.graph.ylim =  np.array(self.graph.ylim) - ((dy/self.graph.height) * (self.graph.ylim[1] - self.graph.ylim[0]))
+            self.update_graph(self.graph)
         def update(dt):
             pass
         pyglet.clock.schedule_interval(update,1/60)

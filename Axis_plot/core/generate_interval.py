@@ -1,0 +1,26 @@
+import numpy as np
+
+def interval(limit,dimension,grid_spacing):
+    rng = limit[1] - limit[0]
+    print("range : ", rng)
+    no_of_ticks = dimension/grid_spacing
+    print("no_of_ticks : ", no_of_ticks)
+    raw_interval = rng/no_of_ticks
+    print("raw_interval : ", raw_interval)
+
+    exponent = np.floor(np.log10(raw_interval))
+    print("exponent : ", exponent)
+    fraction  = raw_interval / (10** exponent)
+    print("fraction : ", fraction)
+    if fraction < 1.5:
+                m = 1
+    elif fraction <3:
+                m = 2
+    elif fraction < 7:
+                m = 5
+    else : 
+                m = 10
+    
+    interval = m * (10**exponent)
+    print("interval : ", interval)
+    return interval

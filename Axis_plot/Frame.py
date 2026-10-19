@@ -1,51 +1,15 @@
-import pyglet
-from Graph_page import Graph_Page
-from Rendering.Renderer import Rendering_Engine
-from core.Geomertry_Engine import geometry_engine
-from Groups.Scissor import Scissor
+from Rendering.Renderer import Renderer
+from Graph_page import GraphPage
 class Frame:
-    def __init__(self,width,height):
+    def __init__(self,width = 800,height =800 ):
         self.width = width
         self.height = height
-        self.graphs = []
-        self.Renderer = Rendering_Engine(width,height)
-        
+        self.Renderer = Renderer(width,height)
+        self.graph = []
 
-    
-    def create_graph_pages(self,no_of_graphs=1,orientation="ROW",grid_spacing=10):
-        coors = geometry_engine.orientation(no_of_graphs,width=self.width,height = self.height,grid_spacing=grid_spacing,orientation=orientation)
-        print(coors)
-        
-        
+    def graph_page(self):
+        graph = GraphPage(self.width,self.height,self.Renderer)
+        self.Renderer.draw_graph(graph)
 
-        for idx,coordinates in enumerate(coors):
-            xmin,xmax,ymin,ymax = coordinates
-            scissor_group = Scissor(xmin,ymin,(xmax-xmin),(ymax-ymin),order=idx)
-            graph = Graph_Page((xmin,xmax),(ymin,ymax),Renderer=self.Renderer,scissor_group=scissor_group)
-            graph.initialize()
-            self.graphs.append(graph)
-            self.Renderer.create_graph(graph,order = idx)
-            
-        
-        return self.graphs
-
-    
     def run(self):
         self.Renderer.run()
-        
-
-
-
-
-if __name__ =="__main__":
-    pass
-    
-
-
-
-
-
-
-
-
-
