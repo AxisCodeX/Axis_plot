@@ -1,16 +1,22 @@
 import numpy as np
 import pyglet 
-from pyglet.gl import GL_LINES,glEnable,GL_BLEND,glBlendFunc,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA
-from  .Shaders.Shader import Shader_Program #custom shader program
+from pyglet.gl import glEnable,glBlendFunc,glPointSize
+from pyglet.gl import GL_LINES,GL_BLEND,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA,GL_PROGRAM_POINT_SIZE,GL_POINTS
+from  .Shaders.Shader import Shader_Program#custom shader program
+from .Shaders.PointShader import Point_Shader
 from core.coordinate_conversion import convert_to_screen_coordinate,convert_to_graph_coordinate
 from core.generate_grid_line_pair import generate_grid_line_pair_x,generate_grid_line_pair_y
+from objects.Scatter_plot import ScatterPlot
 class Renderer:
     def __init__(self,width,height):
         self.width = width
         self.height = height
         self.window = pyglet.window.Window(width,height)
         self.graph = None
+
+        #shader_programs
         self.shader_program = Shader_Program(width,height)
+        self.point_shader = Point_Shader(width,height)
 
 
         ##batches
@@ -23,6 +29,8 @@ class Renderer:
         self.line_batch = pyglet.graphics.Batch()
         self.lines = []
 
+        self.scatter_plot_batch = pyglet.graphics.Batch()
+        self.scatter_plots = []
 
 
 
@@ -77,34 +85,57 @@ class Renderer:
             )
             self.y_ticks.append(label)
 
-        lines = generate_grid_line_pair_x(x_coordinate,graph.height)
+        if graph.grids:
+            lines = generate_grid_line_pair_x(x_coordinate,graph.height)
 
-        lines_v = self.shader_program.vertex_list(
-            len(lines),
-            GL_LINES,
-            position = ('f',lines.flatten()),
-            batch = self.line_batch
+            lines_v = self.shader_program.vertex_list(
+                len(lines),
+                GL_LINES,
+                position = ('f',lines.flatten()),
+                batch = self.line_batch
+            )
+            self.lines.append(lines_v)
+            lines = generate_grid_line_pair_y(y_coordinate, graph.width)
+
+            lines_h = self.shader_program.vertex_list(
+                len(lines),
+                GL_LINES,
+                position = ('f',lines.flatten()),
+                batch = self.line_batch
+            ) 
+            self.lines.append(lines_h)
+            self.update_scatter_plots(graph.xlim,graph.ylim)
+
+    def plot_points(self,x,y):
+        x = np.array(x)
+        y  = np.array(y)
+        scatter_plot = ScatterPlot(x,y,self.graph)
+
+        points = self.point_shader.vertex_list(
+            len(scatter_plot.points),
+            GL_POINTS,
+            position = ('f',scatter_plot.points.flatten()),
+            batch = self.scatter_plot_batch
         )
-        self.lines.append(lines_v)
-        lines = generate_grid_line_pair_y(y_coordinate, graph.width)
-
-        lines_h = self.shader_program.vertex_list(
-            len(lines),
-            GL_LINES,
-            position = ('f',lines.flatten()),
-            batch = self.line_batch
-        ) 
-        self.lines.append(lines_h)
+        
+        scatter_plot.vertex_list = points
+        self.scatter_plots.append(scatter_plot)
 
 
+    def update_scatter_plots(self,xlim,ylim):
+        for s_p in self.scatter_plots:
+            s_p.update_vertex_list(xlim,ylim)
 
     def draw(self):
         self.line_batch.draw()
         self.x_tick_batches.draw()
         self.y_tick_batches.draw()
+        self.scatter_plot_batch.draw()
+
     def run(self):
         @self.window.event
         def on_draw():
+            glEnable(GL_PROGRAM_POINT_SIZE)
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA)
             self.window.clear()

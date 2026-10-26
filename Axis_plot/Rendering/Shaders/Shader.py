@@ -12,6 +12,8 @@ vertex_shader = Shader(
 
         void main(){
             gl_Position = transformation * vec4(position , 0,1);
+
+            
         }
     ""","vertex"
 )

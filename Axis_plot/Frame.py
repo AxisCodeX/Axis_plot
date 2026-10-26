@@ -7,9 +7,10 @@ class Frame:
         self.Renderer = Renderer(width,height)
         self.graph = []
 
-    def graph_page(self):
-        graph = GraphPage(self.width,self.height,self.Renderer)
+    def graph_page(self,grids = True):
+        graph = GraphPage(self.width,self.height,self.Renderer,grids)
         self.Renderer.draw_graph(graph)
+        return graph
 
     def run(self):
         self.Renderer.run()
