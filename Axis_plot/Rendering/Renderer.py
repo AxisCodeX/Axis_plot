@@ -7,6 +7,7 @@ from .Shaders.PointShader import Point_Shader
 from core.coordinate_conversion import convert_to_screen_coordinate,convert_to_graph_coordinate
 from core.generate_grid_line_pair import generate_grid_line_pair_x,generate_grid_line_pair_y
 from objects.Scatter_plot import ScatterPlot
+from objects.Grid_line import GridLine
 class Renderer:
     def __init__(self,width,height):
         self.width = width
@@ -23,6 +24,10 @@ class Renderer:
         self.x_tick_batches = pyglet.graphics.Batch()
         self.x_ticks = []
 
+        self.graph_grids = pyglet.graphics.Batch()
+        self.grids = []
+
+
         self.y_tick_batches = pyglet.graphics.Batch()
         self.y_ticks = [] 
 
@@ -36,11 +41,34 @@ class Renderer:
 
     def draw_graph(self,graph):
         self.graph = graph
+        graph.generate_ticks()
+        x_ticks = graph.x_ticks
+        y_ticks = graph.y_ticks
+
+        x_coordinate = convert_to_screen_coordinate(x_ticks,graph.xlim,graph.width)
+        y_coordinate = convert_to_screen_coordinate(y_ticks,graph.ylim,graph.height)
+        grid_line =  GridLine(x_coordinate,y_coordinate,graph)
+        lines_v = self.shader_program.vertex_list(
+                len(grid_line.lines_v),
+                GL_LINES,
+                position = ('f',grid_line.lines_v.flatten()),
+                batch = self.line_batch
+            )
+        lines_h = self.shader_program.vertex_list(
+                len(grid_line.lines_h),
+                GL_LINES,
+                position = ('f',grid_line.lines_h.flatten()),
+                batch = self.line_batch
+            )
+        grid_line.lines_v_vertex = lines_v
+        grid_line.lines_h_vertex = lines_h
+        
+        
+        self.grids.append(grid_line)
         self.update_graph(graph)
 
     def update_graph(self,graph):
-        graph.generate_ticks()
-
+        
         for tick_y in self.y_ticks:
             tick_y.delete()
         self.y_ticks.clear()
@@ -53,7 +81,7 @@ class Renderer:
         for line in self.lines:
             line.delete()
         self.lines.clear()
-
+        graph.generate_ticks()
         x_ticks = graph.x_ticks
         y_ticks = graph.y_ticks
 
@@ -62,6 +90,9 @@ class Renderer:
 
         x_coordinate = convert_to_screen_coordinate(x_ticks,graph.xlim,graph.width)
         y_coordinate = convert_to_screen_coordinate(y_ticks,graph.ylim,graph.height)
+
+
+        
 
         for x_t , x in zip(x_ticks,x_coordinate):
             label = pyglet.text.Label(
@@ -85,26 +116,23 @@ class Renderer:
             )
             self.y_ticks.append(label)
 
-        if graph.grids:
-            lines = generate_grid_line_pair_x(x_coordinate,graph.height)
-
+        for grid in self.grids:
+            grid.update_grid(x_coordinate,y_coordinate)
             lines_v = self.shader_program.vertex_list(
-                len(lines),
+                len(grid.lines_v),
                 GL_LINES,
-                position = ('f',lines.flatten()),
+                position = ('f',grid.lines_v.flatten()),
                 batch = self.line_batch
             )
-            self.lines.append(lines_v)
-            lines = generate_grid_line_pair_y(y_coordinate, graph.width)
-
             lines_h = self.shader_program.vertex_list(
-                len(lines),
+                len(grid.lines_h),
                 GL_LINES,
-                position = ('f',lines.flatten()),
+                position = ('f',grid.lines_h.flatten()),
                 batch = self.line_batch
-            ) 
-            self.lines.append(lines_h)
-            self.update_scatter_plots(graph.xlim,graph.ylim)
+            )
+            grid.lines_v_vertex = lines_v
+            grid.lines_h_vertex = lines_h
+        self.update_scatter_plots(graph.xlim,graph.ylim)
 
     def plot_points(self,x,y):
         x = np.array(x)
