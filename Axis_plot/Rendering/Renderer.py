@@ -31,8 +31,6 @@ class Renderer:
         self.y_tick_batches = pyglet.graphics.Batch()
         self.y_ticks = [] 
 
-        self.line_batch = pyglet.graphics.Batch()
-        self.lines = []
 
         self.scatter_plot_batch = pyglet.graphics.Batch()
         self.scatter_plots = []
@@ -52,13 +50,13 @@ class Renderer:
                 len(grid_line.lines_v),
                 GL_LINES,
                 position = ('f',grid_line.lines_v.flatten()),
-                batch = self.line_batch
+                batch = self.graph_grids
             )
         lines_h = self.shader_program.vertex_list(
                 len(grid_line.lines_h),
                 GL_LINES,
                 position = ('f',grid_line.lines_h.flatten()),
-                batch = self.line_batch
+                batch = self.graph_grids
             )
         grid_line.lines_v_vertex = lines_v
         grid_line.lines_h_vertex = lines_h
@@ -78,9 +76,6 @@ class Renderer:
         
         self.x_ticks.clear()
 
-        for line in self.lines:
-            line.delete()
-        self.lines.clear()
         graph.generate_ticks()
         x_ticks = graph.x_ticks
         y_ticks = graph.y_ticks
@@ -122,13 +117,13 @@ class Renderer:
                 len(grid.lines_v),
                 GL_LINES,
                 position = ('f',grid.lines_v.flatten()),
-                batch = self.line_batch
+                batch = self.graph_grids
             )
             lines_h = self.shader_program.vertex_list(
                 len(grid.lines_h),
                 GL_LINES,
                 position = ('f',grid.lines_h.flatten()),
-                batch = self.line_batch
+                batch = self.graph_grids
             )
             grid.lines_v_vertex = lines_v
             grid.lines_h_vertex = lines_h
@@ -155,7 +150,7 @@ class Renderer:
             s_p.update_vertex_list(xlim,ylim)
 
     def draw(self):
-        self.line_batch.draw()
+        self.graph_grids.draw()
         self.x_tick_batches.draw()
         self.y_tick_batches.draw()
         self.scatter_plot_batch.draw()
