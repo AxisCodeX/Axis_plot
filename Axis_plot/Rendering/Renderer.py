@@ -8,6 +8,7 @@ from core.coordinate_conversion import convert_to_screen_coordinate,convert_to_g
 from core.generate_grid_line_pair import generate_grid_line_pair_x,generate_grid_line_pair_y
 from objects.Scatter_plot import ScatterPlot
 from objects.Grid_line import GridLine
+from objects.Ticks import Ticks
 class Renderer:
     def __init__(self,width,height):
         self.width = width
@@ -21,16 +22,12 @@ class Renderer:
 
 
         ##batches
-        self.x_tick_batches = pyglet.graphics.Batch()
-        self.x_ticks = []
 
         self.graph_grids = pyglet.graphics.Batch()
         self.grids = []
 
-
-        self.y_tick_batches = pyglet.graphics.Batch()
-        self.y_ticks = [] 
-
+        self.tick_batches = pyglet.graphics.Batch()
+        self.ticks = []
 
         self.scatter_plot_batch = pyglet.graphics.Batch()
         self.scatter_plots = []
@@ -42,7 +39,6 @@ class Renderer:
         graph.generate_ticks()
         x_ticks = graph.x_ticks
         y_ticks = graph.y_ticks
-
         x_coordinate = convert_to_screen_coordinate(x_ticks,graph.xlim,graph.width)
         y_coordinate = convert_to_screen_coordinate(y_ticks,graph.ylim,graph.height)
         grid_line =  GridLine(x_coordinate,y_coordinate,graph)
@@ -60,56 +56,28 @@ class Renderer:
             )
         grid_line.lines_v_vertex = lines_v
         grid_line.lines_h_vertex = lines_h
-        
-        
+
+
+        tick = Ticks(graph,x_ticks,y_ticks)
+        tick.initialize(self.tick_batches)
+        self.ticks.append(tick)
+
         self.grids.append(grid_line)
         self.update_graph(graph)
 
     def update_graph(self,graph):
         
-        for tick_y in self.y_ticks:
-            tick_y.delete()
-        self.y_ticks.clear()
-
-        for tick_x in self.x_ticks:
-            tick_x.delete()
-        
-        self.x_ticks.clear()
-
         graph.generate_ticks()
         x_ticks = graph.x_ticks
         y_ticks = graph.y_ticks
 
-        x_axis = convert_to_screen_coordinate(0,graph.xlim,graph.width)
-        y_axis = convert_to_screen_coordinate(0,graph.ylim,graph.height)
-
         x_coordinate = convert_to_screen_coordinate(x_ticks,graph.xlim,graph.width)
         y_coordinate = convert_to_screen_coordinate(y_ticks,graph.ylim,graph.height)
 
+        for ticks in self.ticks:
+            ticks.update_ticks(x_ticks,y_ticks,self.tick_batches)
 
-        
 
-        for x_t , x in zip(x_ticks,x_coordinate):
-            label = pyglet.text.Label(
-                f"{x_t}",
-                x=x,
-                y = y_axis,
-                batch=self.x_tick_batches,
-                anchor_x="center",
-                anchor_y="center"
-            )
-            self.x_ticks.append(label)
-        
-        for y_t,y in zip(y_ticks,y_coordinate):
-            label = pyglet.text.Label(
-                f"{y_t}",
-                x=x_axis,
-                y=y,
-                batch=self.y_tick_batches,
-                anchor_x="center",
-                anchor_y="center"
-            )
-            self.y_ticks.append(label)
 
         for grid in self.grids:
             grid.update_grid(x_coordinate,y_coordinate)
@@ -127,6 +95,8 @@ class Renderer:
             )
             grid.lines_v_vertex = lines_v
             grid.lines_h_vertex = lines_h
+
+
         self.update_scatter_plots(graph.xlim,graph.ylim)
 
     def plot_points(self,x,y):
@@ -151,8 +121,7 @@ class Renderer:
 
     def draw(self):
         self.graph_grids.draw()
-        self.x_tick_batches.draw()
-        self.y_tick_batches.draw()
+        self.tick_batches.draw()
         self.scatter_plot_batch.draw()
 
     def run(self):
