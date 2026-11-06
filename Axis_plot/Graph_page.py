@@ -12,10 +12,10 @@ class GraphPage:
         self.zoom = 1
         self.xlim = (-10,10)
         self.ylim = (-10,10)
-        self.x_ticks = []
-        self.y_ticks = []
+
         self.grids = grids
         self.generate_ticks()
+        self.scatter_plots = []
 
 
     
@@ -24,11 +24,12 @@ class GraphPage:
         interval_x = interval(self.xlim,self.width,self.grid_spacing)
         interval_y = interval(self.ylim,self.height,self.grid_spacing)
         
-        self.x_ticks = generate_ticks(self.xlim,interval_x)
-        self.y_ticks = generate_ticks(self.ylim , interval_y)
+        x_ticks = generate_ticks(self.xlim,interval_x)
+        y_ticks = generate_ticks(self.ylim , interval_y)
+        return x_ticks,y_ticks
 
     def scatter_plot(self,x,y):
-        self.Renderer.plot_points(x,y)
+        self.Renderer.plot_points(self,x,y)
 
 
 

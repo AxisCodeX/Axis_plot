@@ -14,7 +14,7 @@ class Renderer:
         self.width = width
         self.height = height
         self.window = pyglet.window.Window(width,height)
-        self.graph = None
+        self.graphs = []
 
         #shader_programs
         self.shader_program = Shader_Program(width,height)
@@ -24,21 +24,16 @@ class Renderer:
         ##batches
 
         self.graph_grids = pyglet.graphics.Batch()
-        self.grids = []
 
         self.tick_batches = pyglet.graphics.Batch()
-        self.ticks = []
 
         self.scatter_plot_batch = pyglet.graphics.Batch()
-        self.scatter_plots = []
 
 
 
     def draw_graph(self,graph):
-        self.graph = graph
-        graph.generate_ticks()
-        x_ticks = graph.x_ticks
-        y_ticks = graph.y_ticks
+        self.graphs.append(graph)
+        x_ticks , y_ticks = graph.generate_ticks()
         x_coordinate = convert_to_screen_coordinate(x_ticks,graph.xlim,graph.width)
         y_coordinate = convert_to_screen_coordinate(y_ticks,graph.ylim,graph.height)
         grid_line =  GridLine(x_coordinate,y_coordinate,graph)
@@ -60,49 +55,44 @@ class Renderer:
 
         tick = Ticks(graph,x_ticks,y_ticks)
         tick.initialize(self.tick_batches)
-        self.ticks.append(tick)
-
-        self.grids.append(grid_line)
+        graph.grid_object = grid_line
+        graph.tick_object = tick
         self.update_graph(graph)
 
     def update_graph(self,graph):
         
-        graph.generate_ticks()
-        x_ticks = graph.x_ticks
-        y_ticks = graph.y_ticks
+        x_ticks , y_ticks = graph.generate_ticks()
+
 
         x_coordinate = convert_to_screen_coordinate(x_ticks,graph.xlim,graph.width)
         y_coordinate = convert_to_screen_coordinate(y_ticks,graph.ylim,graph.height)
 
-        for ticks in self.ticks:
-            ticks.update_ticks(x_ticks,y_ticks,self.tick_batches)
+        graph.tick_object.update_ticks(x_ticks,y_ticks,self.tick_batches)
 
 
-
-        for grid in self.grids:
-            grid.update_grid(x_coordinate,y_coordinate)
-            lines_v = self.shader_program.vertex_list(
-                len(grid.lines_v),
-                GL_LINES,
-                position = ('f',grid.lines_v.flatten()),
-                batch = self.graph_grids
-            )
-            lines_h = self.shader_program.vertex_list(
-                len(grid.lines_h),
-                GL_LINES,
-                position = ('f',grid.lines_h.flatten()),
-                batch = self.graph_grids
-            )
-            grid.lines_v_vertex = lines_v
-            grid.lines_h_vertex = lines_h
+        graph.grid_object.update_grid(x_coordinate,y_coordinate)
+        lines_v = self.shader_program.vertex_list(
+            len(graph.grid_object.lines_v),
+            GL_LINES,
+            position = ('f',graph.grid_object.lines_v.flatten()),
+            batch = self.graph_grids
+        )
+        lines_h = self.shader_program.vertex_list(
+            len(graph.grid_object.lines_h),
+            GL_LINES,
+            position = ('f',graph.grid_object.lines_h.flatten()),
+            batch = self.graph_grids
+        )
+        graph.grid_object.lines_v_vertex = lines_v
+        graph.grid_object.lines_h_vertex = lines_h
 
 
-        self.update_scatter_plots(graph.xlim,graph.ylim)
+        self.update_scatter_plots(graph,graph.xlim,graph.ylim)
 
-    def plot_points(self,x,y):
+    def plot_points(self,graph,x,y):
         x = np.array(x)
         y  = np.array(y)
-        scatter_plot = ScatterPlot(x,y,self.graph)
+        scatter_plot = ScatterPlot(x,y,graph)
 
         points = self.point_shader.vertex_list(
             len(scatter_plot.points),
@@ -112,18 +102,41 @@ class Renderer:
         )
         
         scatter_plot.vertex_list = points
-        self.scatter_plots.append(scatter_plot)
+        graph.scatter_plots.append(scatter_plot)
 
+    def update_scatter_plots(self,graph,xlim,ylim):
 
-    def update_scatter_plots(self,xlim,ylim):
-        for s_p in self.scatter_plots:
-            s_p.update_vertex_list(xlim,ylim)
+        for scatter_plt in graph.scatter_plots:
+            scatter_plt.update_vertex_list(xlim,ylim)
 
     def draw(self):
         self.graph_grids.draw()
         self.tick_batches.draw()
         self.scatter_plot_batch.draw()
 
+    def zoom(self,graph,x,y,scroll_y):
+        if scroll_y == 0:
+            return
+        factor = 1.1 if scroll_y > 0 else 1 / 1.1
+
+        x_n = convert_to_graph_coordinate(x,graph.xlim,graph.width)
+        y_n = convert_to_graph_coordinate(y,graph.ylim,graph.height)
+
+        new_x_range = (graph.xlim[1] - graph.xlim[0])/factor
+
+        new_y_range = (graph.ylim[1] - graph.ylim[0])/factor
+
+        new_x_min = x_n  - (x/graph.width)* new_x_range
+        new_y_min = y_n - (y/graph.height) * new_y_range
+
+        graph.xlim = (new_x_min,new_x_min + new_x_range)
+        graph.ylim = (new_y_min, new_y_min + new_y_range)
+        self.update_graph(graph)
+
+    def pan(self,graph,dx,dy):
+        graph.xlim =  np.array(graph.xlim ) - (dx/graph.width) * ((graph.xlim[1] - graph.xlim[0]))
+        graph.ylim =  np.array(graph.ylim) - ((dy/graph.height) * (graph.ylim[1] - graph.ylim[0]))
+        self.update_graph(graph)
     def run(self):
         @self.window.event
         def on_draw():
@@ -136,32 +149,13 @@ class Renderer:
 
         @self.window.event
         def on_mouse_scroll(x,y,scroll_x ,scroll_y):
-            
-                if scroll_y == 0:
-                    return
-                factor = 1.1 if scroll_y > 0 else 1 / 1.1
-                
-                x_n = convert_to_graph_coordinate(x,self.graph.xlim,self.graph.width)
-                y_n = convert_to_graph_coordinate(y,self.graph.ylim,self.graph.height)
-
-                new_x_range = (self.graph.xlim[1] - self.graph.xlim[0])/factor
-
-                new_y_range = (self.graph.ylim[1] - self.graph.ylim[0])/factor
-
-                new_x_min = x_n  - (x/self.graph.width)* new_x_range
-                new_y_min = y_n - (y/self.graph.height) * new_y_range
-
-                self.graph.xlim = (new_x_min,new_x_min + new_x_range)
-                self.graph.ylim = (new_y_min, new_y_min + new_y_range)
-                self.update_graph(self.graph)
+            self.zoom(self.graphs[0],x,y,scroll_y)
 
 
         @self.window.event
         def on_mouse_drag(x,y,dx,dy,buttons,modifiers):
-            
-            self.graph.xlim =  np.array(self.graph.xlim ) - (dx/self.graph.width) * ((self.graph.xlim[1] - self.graph.xlim[0]))
-            self.graph.ylim =  np.array(self.graph.ylim) - ((dy/self.graph.height) * (self.graph.ylim[1] - self.graph.ylim[0]))
-            self.update_graph(self.graph)
+            self.pan(self.graphs[0],dx,dy)
+
         def update(dt):
             pass
         pyglet.clock.schedule_interval(update,1/60)
