@@ -5,7 +5,6 @@ from pyglet.gl import GL_LINES,GL_BLEND,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA,GL_P
 from  .Shaders.Shader import Shader_Program#custom shader program
 from .Shaders.PointShader import Point_Shader
 from core.coordinate_conversion import convert_to_screen_coordinate,convert_to_graph_coordinate
-from core.generate_grid_line_pair import generate_grid_line_pair_x,generate_grid_line_pair_y
 from objects.Scatter_plot import ScatterPlot
 from objects.Grid_line import GridLine
 from objects.Ticks import Ticks
@@ -34,8 +33,10 @@ class Renderer:
     def draw_graph(self,graph):
         self.graphs.append(graph)
         x_ticks , y_ticks = graph.generate_ticks()
-        x_coordinate = convert_to_screen_coordinate(x_ticks,graph.xlim,graph.width)
-        y_coordinate = convert_to_screen_coordinate(y_ticks,graph.ylim,graph.height)
+        x_coordinate =graph.x +  convert_to_screen_coordinate(x_ticks,graph.xlim,graph.width)
+        y_coordinate =graph.y +  convert_to_screen_coordinate(y_ticks,graph.ylim,graph.height)
+
+
         grid_line =  GridLine(x_coordinate,y_coordinate,graph)
         lines_v = self.shader_program.vertex_list(
                 len(grid_line.lines_v),
@@ -64,13 +65,13 @@ class Renderer:
         x_ticks , y_ticks = graph.generate_ticks()
 
 
-        x_coordinate = convert_to_screen_coordinate(x_ticks,graph.xlim,graph.width)
-        y_coordinate = convert_to_screen_coordinate(y_ticks,graph.ylim,graph.height)
+        x_coordinate = graph.x + convert_to_screen_coordinate(x_ticks,graph.xlim,graph.width)
+        y_coordinate = graph.y + convert_to_screen_coordinate(y_ticks,graph.ylim,graph.height)
 
         graph.tick_object.update_ticks(x_ticks,y_ticks,self.tick_batches)
 
 
-        graph.grid_object.update_grid(x_coordinate,y_coordinate)
+        graph.grid_object.update_grid(x_coordinate,y_coordinate,graph)
         lines_v = self.shader_program.vertex_list(
             len(graph.grid_object.lines_v),
             GL_LINES,
@@ -105,7 +106,6 @@ class Renderer:
         graph.scatter_plots.append(scatter_plot)
 
     def update_scatter_plots(self,graph,xlim,ylim):
-
         for scatter_plt in graph.scatter_plots:
             scatter_plt.update_vertex_list(xlim,ylim)
 
@@ -119,24 +119,28 @@ class Renderer:
             return
         factor = 1.1 if scroll_y > 0 else 1 / 1.1
 
-        x_n = convert_to_graph_coordinate(x,graph.xlim,graph.width)
-        y_n = convert_to_graph_coordinate(y,graph.ylim,graph.height)
+        x_n =  convert_to_graph_coordinate(x - graph.x  ,graph.xlim,graph.width)
+        y_n =  convert_to_graph_coordinate(y,graph.ylim,graph.height)
+
+
 
         new_x_range = (graph.xlim[1] - graph.xlim[0])/factor
 
         new_y_range = (graph.ylim[1] - graph.ylim[0])/factor
 
-        new_x_min = x_n  - (x/graph.width)* new_x_range
-        new_y_min = y_n - (y/graph.height) * new_y_range
+        new_x_min = x_n  - (((x - graph.x) /graph.width)* new_x_range)
+        new_y_min = y_n - ((y - graph.y)/graph.height) * new_y_range
 
         graph.xlim = (new_x_min,new_x_min + new_x_range)
         graph.ylim = (new_y_min, new_y_min + new_y_range)
+
         self.update_graph(graph)
 
     def pan(self,graph,dx,dy):
         graph.xlim =  np.array(graph.xlim ) - (dx/graph.width) * ((graph.xlim[1] - graph.xlim[0]))
         graph.ylim =  np.array(graph.ylim) - ((dy/graph.height) * (graph.ylim[1] - graph.ylim[0]))
         self.update_graph(graph)
+
     def run(self):
         @self.window.event
         def on_draw():
@@ -149,12 +153,16 @@ class Renderer:
 
         @self.window.event
         def on_mouse_scroll(x,y,scroll_x ,scroll_y):
-            self.zoom(self.graphs[0],x,y,scroll_y)
+            for graph in self.graphs:
+                if (x >= graph.x and x <= (graph.x + graph.width) )and (y >= graph.y and y<= (graph.y + graph.height)):
+                    self.zoom(graph,x,y,scroll_y)
 
 
         @self.window.event
         def on_mouse_drag(x,y,dx,dy,buttons,modifiers):
-            self.pan(self.graphs[0],dx,dy)
+            for graph in self.graphs:
+                if (x >= graph.x and x <= (graph.x + graph.width) )and (y >= graph.y and y<= (graph.y + graph.height)):
+                    self.pan(graph,dx,dy)
 
         def update(dt):
             pass

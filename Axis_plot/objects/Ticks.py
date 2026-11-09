@@ -8,11 +8,11 @@ class Ticks:
         self.ticks_x = []
         self.ticks_y = []
     def initialize(self,batch):
-        x_axis = convert_to_screen_coordinate(0,self.graph.xlim,self.graph.width)
-        y_axis = convert_to_screen_coordinate(0,self.graph.ylim,self.graph.height)
+        x_axis =self.graph.x +  convert_to_screen_coordinate(0,self.graph.xlim,self.graph.width)
+        y_axis =self.graph.y  + convert_to_screen_coordinate(0,self.graph.ylim,self.graph.height)
 
-        x_coordinate = convert_to_screen_coordinate(self.x,self.graph.xlim,self.graph.width)
-        y_coordinate = convert_to_screen_coordinate(self.y,self.graph.ylim,self.graph.height)
+        x_coordinate =self.graph.x +  convert_to_screen_coordinate(self.x,self.graph.xlim,self.graph.width)
+        y_coordinate =self.graph.y +  convert_to_screen_coordinate(self.y,self.graph.ylim,self.graph.height)
 
         for x_t , x in zip(self.x,x_coordinate):
             label = pyglet.text.Label(
@@ -21,7 +21,8 @@ class Ticks:
                 y = y_axis,
                 batch=batch,
                 anchor_x="center",
-                anchor_y="center"
+                anchor_y="center",
+
             )
             self.ticks_x.append(label)
         for y_t,y in zip(self.y,y_coordinate):
@@ -31,7 +32,8 @@ class Ticks:
                 y=y,
                 batch=batch,
                 anchor_x="center",
-                anchor_y="center"
+                anchor_y="center",
+
             )
             self.ticks_y.append(label)
 
@@ -39,11 +41,11 @@ class Ticks:
         self.x = x_ticks
         self.y = y_ticks
 
-        x_axis = convert_to_screen_coordinate(0,self.graph.xlim,self.graph.width)
-        y_axis = convert_to_screen_coordinate(0,self.graph.ylim,self.graph.height)
+        x_axis = self.graph.x + convert_to_screen_coordinate(0,self.graph.xlim,self.graph.width)
+        y_axis =self.graph.y +  convert_to_screen_coordinate(0,self.graph.ylim,self.graph.height)
 
-        x_coordinate = convert_to_screen_coordinate(self.x,self.graph.xlim,self.graph.width)
-        y_coordinate = convert_to_screen_coordinate(self.y,self.graph.ylim,self.graph.height)
+        x_coordinate =self.graph.x +  convert_to_screen_coordinate(self.x,self.graph.xlim,self.graph.width)
+        y_coordinate = self.graph.y + convert_to_screen_coordinate(self.y,self.graph.ylim,self.graph.height)
 
         for ticks in self.ticks_x:
             ticks.delete()
@@ -61,7 +63,8 @@ class Ticks:
                 y = y_axis,
                 batch=batch,
                 anchor_x="center",
-                anchor_y="center"
+                anchor_y="center",
+
             )
             self.ticks_x.append(label)
         for y_t,y in zip(self.y,y_coordinate):
@@ -71,7 +74,7 @@ class Ticks:
                 y=y,
                 batch=batch,
                 anchor_x="center",
-                anchor_y="center"
+                anchor_y="center",
             )
             self.ticks_y.append(label)
 
