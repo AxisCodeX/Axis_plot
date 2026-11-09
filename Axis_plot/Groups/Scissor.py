@@ -10,8 +10,10 @@ class Scissor(pyglet.graphics.Group):
         self.height = int(height)
 
     def set_state(self):
+        print("SCISSOR ENABLED:", self.x, self.y, self.width, self.height)
         glEnable(GL_SCISSOR_TEST)
         glScissor(self.x,self.y,self.width,self.height)
 
     def unset_state(self):
+        print("Scissor disabled")
         glDisable(GL_SCISSOR_TEST)

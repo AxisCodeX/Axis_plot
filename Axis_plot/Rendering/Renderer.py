@@ -1,13 +1,16 @@
 import numpy as np
 import pyglet 
+from pyglet.graphics import ShaderGroup
 from pyglet.gl import glEnable,glBlendFunc,glPointSize
 from pyglet.gl import GL_LINES,GL_BLEND,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA,GL_PROGRAM_POINT_SIZE,GL_POINTS
+from pyglet.window import shader
 from  .Shaders.Shader import Shader_Program#custom shader program
 from .Shaders.PointShader import Point_Shader
 from core.coordinate_conversion import convert_to_screen_coordinate,convert_to_graph_coordinate
 from objects.Scatter_plot import ScatterPlot
 from objects.Grid_line import GridLine
 from objects.Ticks import Ticks
+from Groups.Scissor import Scissor
 class Renderer:
     def __init__(self,width,height):
         self.width = width
@@ -32,6 +35,10 @@ class Renderer:
 
     def draw_graph(self,graph):
         self.graphs.append(graph)
+        scissor_group = Scissor(graph.x , graph.y , graph.width , graph.height , order = len(self.graphs))
+        shader_group = ShaderGroup(self.shader_program,parent = scissor_group)
+        graph.scissor_group = scissor_group
+        graph.shader_group = shader_group
         x_ticks , y_ticks = graph.generate_ticks()
         x_coordinate =graph.x +  convert_to_screen_coordinate(x_ticks,graph.xlim,graph.width)
         y_coordinate =graph.y +  convert_to_screen_coordinate(y_ticks,graph.ylim,graph.height)
@@ -42,13 +49,17 @@ class Renderer:
                 len(grid_line.lines_v),
                 GL_LINES,
                 position = ('f',grid_line.lines_v.flatten()),
-                batch = self.graph_grids
+                batch = self.graph_grids,
+                group = shader_group
+
             )
         lines_h = self.shader_program.vertex_list(
                 len(grid_line.lines_h),
                 GL_LINES,
                 position = ('f',grid_line.lines_h.flatten()),
-                batch = self.graph_grids
+                batch = self.graph_grids,
+                group = shader_group
+
             )
         grid_line.lines_v_vertex = lines_v
         grid_line.lines_h_vertex = lines_h
@@ -76,13 +87,17 @@ class Renderer:
             len(graph.grid_object.lines_v),
             GL_LINES,
             position = ('f',graph.grid_object.lines_v.flatten()),
-            batch = self.graph_grids
+            batch = self.graph_grids,
+            group = graph.shader_group
+
         )
         lines_h = self.shader_program.vertex_list(
             len(graph.grid_object.lines_h),
             GL_LINES,
             position = ('f',graph.grid_object.lines_h.flatten()),
-            batch = self.graph_grids
+            batch = self.graph_grids,
+            group = graph.shader_group
+
         )
         graph.grid_object.lines_v_vertex = lines_v
         graph.grid_object.lines_h_vertex = lines_h
@@ -112,6 +127,7 @@ class Renderer:
     def draw(self):
         self.graph_grids.draw()
         self.tick_batches.draw()
+
         self.scatter_plot_batch.draw()
 
     def zoom(self,graph,x,y,scroll_y):

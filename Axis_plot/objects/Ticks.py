@@ -22,6 +22,7 @@ class Ticks:
                 batch=batch,
                 anchor_x="center",
                 anchor_y="center",
+                group = self.graph.scissor_group
 
             )
             self.ticks_x.append(label)
@@ -33,6 +34,8 @@ class Ticks:
                 batch=batch,
                 anchor_x="center",
                 anchor_y="center",
+                group = self.graph.scissor_group
+
 
             )
             self.ticks_y.append(label)
@@ -64,6 +67,8 @@ class Ticks:
                 batch=batch,
                 anchor_x="center",
                 anchor_y="center",
+                group = self.graph.scissor_group
+
 
             )
             self.ticks_x.append(label)
@@ -75,6 +80,8 @@ class Ticks:
                 batch=batch,
                 anchor_x="center",
                 anchor_y="center",
+                group = self.graph.scissor_group
+
             )
             self.ticks_y.append(label)
 

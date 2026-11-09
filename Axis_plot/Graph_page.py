@@ -4,7 +4,7 @@ from core.generate_ticks import generate_ticks
 from core.coordinate_conversion import convert_to_screen_coordinate
 
 class GraphPage:
-    def __init__(self,x,y,width,height,Renderer,grids):
+    def __init__(self,x,y,width,height,Renderer,grids,scissor_group=None):
         self.x = x
         self.y = y
         self.width = width
@@ -17,6 +17,7 @@ class GraphPage:
 
         self.grids = grids
         self.scatter_plots = []
+        self.scissor_group = scissor_group
         self.generate_ticks()
 
 
