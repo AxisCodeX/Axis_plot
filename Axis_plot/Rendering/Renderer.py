@@ -2,12 +2,11 @@ import numpy as np
 import pyglet 
 from pyglet.graphics import ShaderGroup
 from pyglet.gl import glEnable,glBlendFunc,glPointSize
-from pyglet.gl import GL_LINES,GL_BLEND,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA,GL_PROGRAM_POINT_SIZE,GL_POINTS
+from pyglet.gl import GL_LINES,GL_BLEND,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA,GL_PROGRAM_POINT_SIZE,GL_POINTS,GL_LINE_STRIP ,GL_LINE_LOOP
 from pyglet.window import shader
 from  .Shaders.Shader import Shader_Program#custom shader program
 from .Shaders.PointShader import Point_Shader
 from core.coordinate_conversion import convert_to_screen_coordinate,convert_to_graph_coordinate
-from objects.Scatter_plot import ScatterPlot
 from objects.Grid_line import GridLine
 from objects.Ticks import Ticks
 from Groups.Scissor import Scissor
@@ -29,9 +28,7 @@ class Renderer:
 
         self.tick_batches = pyglet.graphics.Batch()
 
-        self.scatter_plot_batch = pyglet.graphics.Batch()
-
-
+        self.vertex_plot_batch = pyglet.graphics.Batch()
 
     def draw_graph(self,graph):
         self.graphs.append(graph)
@@ -103,32 +100,42 @@ class Renderer:
         graph.grid_object.lines_h_vertex = lines_h
 
 
-        self.update_scatter_plots(graph,graph.xlim,graph.ylim)
+        self.update_vertex_plt(graph,graph.xlim,graph.ylim)
 
-    def plot_points(self,graph,x,y):
-        x = np.array(x)
-        y  = np.array(y)
-        scatter_plot = ScatterPlot(x,y,graph)
+    def plot_vertex(self,graph,vertex_plt):
+        vertex_shader_group = ShaderGroup(program = self.point_shader , order = 0 , parent = graph.scissor_group)
+        graph.vertex_shader_group = vertex_shader_group
+        self.point_shader["mode"] = vertex_plt.plot_mode
+        if (vertex_plt.plot_mode == 1) and (not vertex_plt.line_joined) :
+            mode = GL_LINES
+        elif (vertex_plt.plot_mode == 1) and (vertex_plt.line_joined) and (vertex_plt.looped):
+            mode = GL_LINE_LOOP
+        elif (vertex_plt.plot_mode == 1) and (vertex_plt.line_joined) :
+            mode = GL_LINE_STRIP
+        else:
+            mode = GL_POINTS
 
         points = self.point_shader.vertex_list(
-            len(scatter_plot.points),
-            GL_POINTS,
-            position = ('f',scatter_plot.points.flatten()),
-            batch = self.scatter_plot_batch
-        )
-        
-        scatter_plot.vertex_list = points
-        graph.scatter_plots.append(scatter_plot)
+            len(vertex_plt.points),
+            mode,
+            position = ('f',vertex_plt.points.flatten()),
+            batch = self.vertex_plot_batch,
+            group = graph.vertex_shader_group
+            )
 
-    def update_scatter_plots(self,graph,xlim,ylim):
-        for scatter_plt in graph.scatter_plots:
-            scatter_plt.update_vertex_list(xlim,ylim)
+        vertex_plt.vertex_list = points
+        graph.vertex_plots.append(vertex_plt)
+
+    def update_vertex_plt(self,graph,xlim,ylim):
+        for vertex_plt in graph.vertex_plots:
+            vertex_plt.update_vertex_list(xlim,ylim)
 
     def draw(self):
         self.graph_grids.draw()
         self.tick_batches.draw()
 
-        self.scatter_plot_batch.draw()
+        self.vertex_plot_batch.draw()
+
 
     def zoom(self,graph,x,y,scroll_y):
         if scroll_y == 0:

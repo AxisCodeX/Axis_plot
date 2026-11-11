@@ -2,7 +2,7 @@ import numpy as np
 from core.generate_interval import interval
 from core.generate_ticks import generate_ticks
 from core.coordinate_conversion import convert_to_screen_coordinate
-
+from objects.Vertex_plt import VertexPlot
 class GraphPage:
     def __init__(self,x,y,width,height,Renderer,grids,scissor_group=None):
         self.x = x
@@ -16,7 +16,7 @@ class GraphPage:
         self.ylim = (-10,10)
 
         self.grids = grids
-        self.scatter_plots = []
+        self.vertex_plots = []
         self.scissor_group = scissor_group
         self.generate_ticks()
 
@@ -32,8 +32,13 @@ class GraphPage:
         y_ticks = generate_ticks(self.ylim , interval_y)
         return x_ticks,y_ticks
 
-    def scatter_plot(self,x,y):
-        self.Renderer.plot_points(self,x,y)
+    def VertexPlot(self,x,y,mode=0,line_joined=False,looped=False):
+        vertex_plot = VertexPlot(self,x,y,mode,line_joined,looped)
+        self.vertex_plots.append(vertex_plot)
+        self.Renderer.plot_vertex(self,vertex_plot)
+
+
+
 
 
 

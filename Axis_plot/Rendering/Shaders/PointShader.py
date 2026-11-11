@@ -10,9 +10,15 @@ vertex_shader = Shader(
 
         in vec2 position;
         uniform mat4 transformation; 
+
+        uniform int mode;
+        flat out int plot_mode;
         void main(){
             gl_Position  = transformation * vec4(position , 0 , 1);
-            gl_PointSize = 20;
+            if (mode == 0){
+                gl_PointSize = 6;
+            }
+            plot_mode = mode;
         }
     ""","vertex"
 )
@@ -20,14 +26,17 @@ vertex_shader = Shader(
 fragment_shader = Shader(
     """
         #version 330 core
+        flat in int plot_mode;
         out vec4 color; 
         void main(){
             color = vec4(0,1,0,1);
 
             vec2 coord = gl_PointCoord - vec2(0.5);
 
-            if (dot(coord,coord) > 0.25 ){
-                discard;
+            if (plot_mode == 0){
+                if (dot(coord,coord) > 0.25 ){
+                    discard;
+                }
             }
         }
     ""","fragment"
@@ -46,4 +55,5 @@ def Point_Shader(width,height):
     shader_program = ShaderProgram(vertex_shader,fragment_shader)
     shader_program.use()
     shader_program["transformation"] = transformation_matrix
+    shader_program["mode"] = 1
     return shader_program
