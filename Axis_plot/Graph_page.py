@@ -3,6 +3,8 @@ from core.generate_interval import interval
 from core.generate_ticks import generate_ticks
 from core.coordinate_conversion import convert_to_screen_coordinate
 from objects.Vertex_plt import VertexPlot
+from objects.Histogram import Hist
+from pyglet.shapes import Rectangle
 class GraphPage:
     def __init__(self,x,y,width,height,Renderer,grids,scissor_group=None):
         self.x = x
@@ -36,6 +38,15 @@ class GraphPage:
         vertex_plot = VertexPlot(self,x,y,mode,line_joined,looped)
         self.vertex_plots.append(vertex_plot)
         self.Renderer.plot_vertex(self,vertex_plot)
+
+    def Histogram(self,dist,bins= 5):
+        dist = np.array(dist)
+        histogram  = Hist(self,dist,bins)
+        rectangles = histogram.convert_to_rectangle().flatten()
+
+
+
+
 
 
 

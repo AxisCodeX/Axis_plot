@@ -10,6 +10,7 @@ from core.coordinate_conversion import convert_to_screen_coordinate,convert_to_g
 from objects.Grid_line import GridLine
 from objects.Ticks import Ticks
 from Groups.Scissor import Scissor
+from Shaders.Rectangle_shader import RectangleShader
 class Renderer:
     def __init__(self,width,height):
         self.width = width
